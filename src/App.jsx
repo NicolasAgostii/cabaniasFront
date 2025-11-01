@@ -19,6 +19,13 @@ export default function App() {
           >
             Inicio
           </Link>
+
+          <Link
+            to="/calendario/1"
+            className="text-gray-300 hover:text-indigo-400 font-medium transition"
+          >
+            Calendarios
+          </Link>
         </nav>
       </div>
 
