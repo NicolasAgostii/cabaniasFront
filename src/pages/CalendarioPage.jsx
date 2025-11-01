@@ -27,14 +27,14 @@ export default function CalendarioPage() {
   }, [selectedAnio]);
 
   async function fetchAnios() {
-    const res = await fetch(`http://localhost:8080/api/calendarios/${id}/anios`);
+    const res = await fetch(`http://54.159.22.152:8080/api/calendarios/${id}/anios`);
     const data = await res.json();
     setAnios(data);
     if (data.length > 0) setSelectedAnio(data[0]);
   }
 
   async function fetchMeses() {
-    const res = await fetch(`http://localhost:8080/api/calendarios/${id}`);
+    const res = await fetch(`http://54.159.22.152:8080/api/calendarios/${id}`);
     const data = await res.json();
     const anioActivo =
       data.anios?.find((a) => a.numero === selectedAnio) || data.anios?.[0];

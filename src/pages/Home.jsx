@@ -7,7 +7,7 @@ export default function Home() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:8080/api/cabanias")
+      .get("http://54.159.22.152:8080/api/cabanias")
       .then((res) => setCabanias(res.data))
       .catch((err) => console.log(err));
   }, []);
@@ -22,3 +22,4 @@ export default function Home() {
     </div>
   );
 }
+

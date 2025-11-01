@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8080/api/dias";
+const API_URL = "http://54.159.22.152:8080/api/dias";
 
 export async function reservarDiaCompleto(id, nombre, contacto) {
   const res = await fetch(`${API_URL}/${id}/reservar`, {

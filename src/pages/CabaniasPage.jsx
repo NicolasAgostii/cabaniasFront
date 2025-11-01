@@ -6,7 +6,7 @@ export default function CabaniasPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/cabanias")
+    fetch("http://54.159.22.152:8080/api/cabanias")
       .then((r) => r.json())
       .then((data) => setCabanias(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
