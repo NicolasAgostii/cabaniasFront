@@ -18,6 +18,9 @@ export default function CalendarioPage() {
   const [contacto, setContacto] = useState("");
   const [showModal, setShowModal] = useState(false);
 
+  // 👇 Leemos la base URL desde el .env
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
   useEffect(() => {
     if (id) fetchAnios();
   }, [id]);
@@ -27,14 +30,14 @@ export default function CalendarioPage() {
   }, [selectedAnio]);
 
   async function fetchAnios() {
-    const res = await fetch(`http://54.159.22.152:8080/api/calendarios/${id}/anios`);
+    const res = await fetch(`https://cabaniasback-production.up.railway.app/api/calendarios/${id}/anios`);
     const data = await res.json();
     setAnios(data);
     if (data.length > 0) setSelectedAnio(data[0]);
   }
 
   async function fetchMeses() {
-    const res = await fetch(`http://54.159.22.152:8080/api/calendarios/${id}`);
+    const res = await fetch(`https://cabaniasback-production.up.railway.app/api/calendarios/${id}`);
     const data = await res.json();
     const anioActivo =
       data.anios?.find((a) => a.numero === selectedAnio) || data.anios?.[0];
@@ -44,105 +47,98 @@ export default function CalendarioPage() {
   function toggleDiaSeleccionado(dia) {
     setSelectedDias((prev) => {
       const existe = prev.find((d) => d.id === dia.id);
-      if (existe) {
-        return prev.filter((d) => d.id !== dia.id);
-      } else {
-        return [...prev, dia];
-      }
+      if (existe) return prev.filter((d) => d.id !== dia.id);
+      else return [...prev, dia];
     });
   }
 
-async function handleReservaSubmit(e) {
-  e.preventDefault();
-  if (selectedDias.length === 0) return;
+  async function handleReservaSubmit(e) {
+    e.preventDefault();
+    if (selectedDias.length === 0) return;
 
-  const diasOrdenados = [...selectedDias].sort((a, b) => a.numero - b.numero);
-  const todosLosDias = meses.flatMap((m) => m.dias);
+    const diasOrdenados = [...selectedDias].sort((a, b) => a.numero - b.numero);
+    const todosLosDias = meses.flatMap((m) => m.dias);
 
-  // ✅ Caso especial: un solo día y turno completo (tarde + siguiente mañana)
-  if (turno === "completo" && diasOrdenados.length === 1) {
-    const diaActual = diasOrdenados[0];
-    const siguienteDia = todosLosDias.find(
-      (d) => d.numero === diaActual.numero + 1
-    );
-
-    if (!siguienteDia) {
-      alert("⚠️ No existe un día siguiente para completar la reserva.");
-      return;
-    }
-
-    if (diaActual.ocupadoALaTarde || siguienteDia.ocupadoALaManiana) {
-      alert(
-        `⚠️ No se puede reservar: el día ${diaActual.numero} (tarde) o el día ${siguienteDia.numero} (mañana) ya está ocupado.`
+    if (turno === "completo" && diasOrdenados.length === 1) {
+      const diaActual = diasOrdenados[0];
+      const siguienteDia = todosLosDias.find(
+        (d) => d.numero === diaActual.numero + 1
       );
+
+      if (!siguienteDia) {
+        alert("⚠️ No existe un día siguiente para completar la reserva.");
+        return;
+      }
+
+      if (diaActual.ocupadoALaTarde || siguienteDia.ocupadoALaManiana) {
+        alert(
+          `⚠️ No se puede reservar: el día ${diaActual.numero} (tarde) o el día ${siguienteDia.numero} (mañana) ya está ocupado.`
+        );
+        return;
+      }
+
+      await Promise.all([
+        reservarTarde(diaActual.id, nombre, contacto),
+        reservarManiana(siguienteDia.id, nombre, contacto),
+      ]);
+
+      setShowModal(false);
+      setSelectedDias([]);
+      setNombre("");
+      setContacto("");
+      await fetchMeses();
+      alert("✅ Reserva registrada correctamente.");
       return;
     }
 
-    await Promise.all([
-      reservarTarde(diaActual.id, nombre, contacto),
-      reservarManiana(siguienteDia.id, nombre, contacto),
-    ]);
+    const errorDia = diasOrdenados.find((dia, index) => {
+      const maniana = dia.ocupadoALaManiana;
+      const tarde = dia.ocupadoALaTarde;
+
+      if (turno === "mañana" && maniana) return true;
+      if (turno === "tarde" && tarde) return true;
+
+      if (turno === "completo") {
+        if (diasOrdenados.length > 1) {
+          if (index === 0 && tarde) return true;
+          if (index === diasOrdenados.length - 1 && maniana) return true;
+          if (index > 0 && index < diasOrdenados.length - 1 && (maniana || tarde))
+            return true;
+        } else if (maniana || tarde) return true;
+      }
+
+      return false;
+    });
+
+    if (errorDia) {
+      alert(`⚠️ El día ${errorDia.numero} ya está ocupado para el turno correspondiente.`);
+      return;
+    }
+
+    const reservas = diasOrdenados.map((dia, index) => {
+      if (turno === "completo") {
+        if (diasOrdenados.length > 1) {
+          if (index === 0) return reservarTarde(dia.id, nombre, contacto);
+          if (index === diasOrdenados.length - 1)
+            return reservarManiana(dia.id, nombre, contacto);
+          return reservarDiaCompleto(dia.id, nombre, contacto);
+        }
+        return reservarDiaCompleto(dia.id, nombre, contacto);
+      }
+
+      if (turno === "mañana") return reservarManiana(dia.id, nombre, contacto);
+      if (turno === "tarde") return reservarTarde(dia.id, nombre, contacto);
+    });
+
+    await Promise.all(reservas);
 
     setShowModal(false);
     setSelectedDias([]);
     setNombre("");
     setContacto("");
     await fetchMeses();
-    alert("✅ Reserva registrada correctamente.");
-    return;
+    alert("✅ Reservas confirmadas correctamente.");
   }
-
-  // ✅ Verificar ocupación para reservas múltiples
-  const errorDia = diasOrdenados.find((dia, index) => {
-    const maniana = dia.ocupadoALaManiana;
-    const tarde = dia.ocupadoALaTarde;
-
-    if (turno === "mañana" && maniana) return true;
-    if (turno === "tarde" && tarde) return true;
-
-    if (turno === "completo") {
-      if (diasOrdenados.length > 1) {
-        if (index === 0 && tarde) return true; // primer día: tarde
-        if (index === diasOrdenados.length - 1 && maniana) return true; // último día: mañana
-        if (index > 0 && index < diasOrdenados.length - 1 && (maniana || tarde))
-          return true; // intermedios: completos
-      } else if (maniana || tarde) return true;
-    }
-
-    return false;
-  });
-
-  if (errorDia) {
-    alert(`⚠️ El día ${errorDia.numero} ya está ocupado para el turno correspondiente.`);
-    return;
-  }
-
-  // ✅ Crear reservas según el patrón correcto
-  const reservas = diasOrdenados.map((dia, index) => {
-    if (turno === "completo") {
-      if (diasOrdenados.length > 1) {
-        if (index === 0) return reservarTarde(dia.id, nombre, contacto);
-        if (index === diasOrdenados.length - 1)
-          return reservarManiana(dia.id, nombre, contacto);
-        return reservarDiaCompleto(dia.id, nombre, contacto);
-      }
-      return reservarDiaCompleto(dia.id, nombre, contacto);
-    }
-
-    if (turno === "mañana") return reservarManiana(dia.id, nombre, contacto);
-    if (turno === "tarde") return reservarTarde(dia.id, nombre, contacto);
-  });
-
-  await Promise.all(reservas);
-
-  setShowModal(false);
-  setSelectedDias([]);
-  setNombre("");
-  setContacto("");
-  await fetchMeses();
-  alert("✅ Reservas confirmadas correctamente.");
-}
-
 
   return (
     <div className="p-8 min-h-screen bg-gray-900 text-white">
@@ -163,7 +159,6 @@ async function handleReservaSubmit(e) {
         </button>
       </div>
 
-      {/* 🔹 Años */}
       <div className="flex justify-center gap-6 mb-8 flex-wrap">
         {anios.map((anio) => (
           <button
@@ -180,7 +175,6 @@ async function handleReservaSubmit(e) {
         ))}
       </div>
 
-      {/* 🔹 Meses */}
       <div className="flex flex-col gap-10">
         {meses.map((mes) => (
           <div
@@ -205,7 +199,6 @@ async function handleReservaSubmit(e) {
         ))}
       </div>
 
-      {/* 🔹 Modal */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
           <div className="bg-white rounded-2xl p-6 shadow-xl w-96 text-gray-800">

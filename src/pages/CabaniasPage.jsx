@@ -5,12 +5,15 @@ export default function CabaniasPage() {
   const [cabanias, setCabanias] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // 👇 Leemos la variable de entorno
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+
   useEffect(() => {
-    fetch("http://54.159.22.152:8080/api/cabanias")
+    fetch(`https://cabaniasback-production.up.railway.app/api/cabanias`)
       .then((r) => r.json())
       .then((data) => setCabanias(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
-  }, []);
+  }, [baseUrl]);
 
   if (loading)
     return <p className="text-center mt-10 text-gray-600">Cargando...</p>;
