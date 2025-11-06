@@ -17,7 +17,7 @@ export default function App() {
             to="/"
             className="text-gray-300 hover:text-indigo-400 font-medium transition"
           >
-            Inicio ultimo comitt se muestra
+            Inicio 
           </Link>
 
           <Link
