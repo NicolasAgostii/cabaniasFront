@@ -1,4 +1,4 @@
-const API_URL = "https://cabaniasback-production.up.railway.app/api/dias";
+const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/dias`;
 
 export async function reservarDiaCompleto(id, nombre, contacto) {
   const res = await fetch(`${API_URL}/${id}/reservar`, {

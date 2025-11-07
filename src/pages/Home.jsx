@@ -9,7 +9,7 @@ export default function Home() {
 
   useEffect(() => {
     axios
-      .get(`https://cabaniasback-production.up.railway.app/api/cabanias`)
+      .get(`${import.meta.env.VITE_API_BASE_URL}/api/cabanias`)
       .then((res) => {
         console.log("Respuesta del backend:", res.data);
         // ✅ Manejar ambos casos (lista directa o dentro de un objeto 'content')

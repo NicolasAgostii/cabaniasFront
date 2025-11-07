@@ -5,11 +5,9 @@ export default function CabaniasPage() {
   const [cabanias, setCabanias] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 👇 Leemos la variable de entorno
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
-    fetch(`https://cabaniasback-production.up.railway.app/api/cabanias`)
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/cabanias`)
       .then((r) => r.json())
       .then((data) => setCabanias(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
